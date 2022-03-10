@@ -16,11 +16,7 @@ AFK_REPLY_GROUP = 8
 @run_async
 def afk(bot: Bot, update: Update):
     args = update.effective_message.text.split(None, 1)
-    if len(args) >= 2:
-        reason = args[1]
-    else:
-        reason = ""
-
+    reason = args[1] if len(args) >= 2 else ""
     sql.set_afk(update.effective_user.id, reason)
     update.effective_message.reply_text("{} कीबोर्ड से दूर है ! ".format(update.effective_user.first_name))
 
@@ -60,10 +56,14 @@ def reply_afk(bot: Bot, update: Update):
 
             if sql.is_afk(user_id):
                 user = sql.check_afk_status(user_id)
-                if not user.reason:
-                    res = "{} कीबोर्ड से दूर है ! कारण :\n{} ".format(fst_name)
-                else:
-                    res = "{} कीबोर्ड से दूर है ! कारण :\n{}. ".format(fst_name, user.reason)
+                res = (
+                    "{} कीबोर्ड से दूर है ! कारण :\n{}. ".format(
+                        fst_name, user.reason
+                    )
+                    if user.reason
+                    else "{} कीबोर्ड से दूर है ! कारण :\n{} ".format(fst_name)
+                )
+
                 message.reply_text(res)
 
 

@@ -68,7 +68,7 @@ if is_module_loaded(FILENAME):
     @user_admin
     def disable(bot: Bot, update: Update, args: List[str]):
         chat = update.effective_chat  # type: Optional[Chat]
-        if len(args) >= 1:
+        if args:
             disable_cmd = args[0]
             if disable_cmd.startswith(CMD_STARTERS):
                 disable_cmd = disable_cmd[1:]
@@ -88,7 +88,7 @@ if is_module_loaded(FILENAME):
     @user_admin
     def enable(bot: Bot, update: Update, args: List[str]):
         chat = update.effective_chat  # type: Optional[Chat]
-        if len(args) >= 1:
+        if args:
             enable_cmd = args[0]
             if enable_cmd.startswith(CMD_STARTERS):
                 enable_cmd = enable_cmd[1:]
@@ -107,9 +107,11 @@ if is_module_loaded(FILENAME):
     @user_admin
     def list_cmds(bot: Bot, update: Update):
         if DISABLE_CMDS + DISABLE_OTHER:
-            result = ""
-            for cmd in set(DISABLE_CMDS + DISABLE_OTHER):
-                result += " - `{}`\n".format(escape_markdown(cmd))
+            result = "".join(
+                " - `{}`\n".format(escape_markdown(cmd))
+                for cmd in set(DISABLE_CMDS + DISABLE_OTHER)
+            )
+
             update.effective_message.reply_text("निम्नलिखित कमांड टॉगल करने योग्य हैं '{}'".format(enable_cmd),
                                                 parse_mode=ParseMode.MARKDOWN)
         else:
@@ -122,9 +124,7 @@ if is_module_loaded(FILENAME):
         if not disabled:
             return "कोई भी आदेश डिसएबल नहीं किया जा सकता है!"
 
-        result = ""
-        for cmd in disabled:
-            result += " - `{}`\n".format(escape_markdown(cmd))
+        result = "".join(" - `{}`\n".format(escape_markdown(cmd)) for cmd in disabled)
         return "वर्तमान में निम्न आदेश प्रतिबंधित हैं:\n{}".format(result)
 
 

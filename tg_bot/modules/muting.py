@@ -32,9 +32,7 @@ def mute(bot: Bot, update: Update, args: List[str]) -> str:
         message.reply_text("मैं खुद को म्यूट नहीं कर रहा हूं!!")
         return ""
 
-    member = chat.get_member(int(user_id))
-
-    if member:
+    if member := chat.get_member(int(user_id)):
         if is_user_admin(chat, user_id, member=member):
             message.reply_text("डर लगता है,कि मैं एक एडमिन को बात करने से रोकने की कोशिश करना!")
 
@@ -72,26 +70,25 @@ def unmute(bot: Bot, update: Update, args: List[str]) -> str:
 
     member = chat.get_member(int(user_id))
 
-    if member.status != 'kicked' and member.status != 'left':
-        if member.can_send_messages and member.can_send_media_messages \
-                and member.can_send_other_messages and member.can_add_web_page_previews:
-            message.reply_text("उसे बोलने का अधिकार है")
-        else:
-            bot.restrict_chat_member(chat.id, int(user_id),
-                                     can_send_messages=True,
-                                     can_send_media_messages=True,
-                                     can_send_other_messages=True,
-                                     can_add_web_page_previews=True)
-            message.reply_text("अनम्यूट💥!")
-            return "<b>{}:</b>" \
-                   "\n#UNMUTE" \
-                   "\n<b>Admin:</b> {}" \
-                   "\n<b>User:</b> {}".format(html.escape(chat.title),
-                                              mention_html(user.id, user.first_name),
-                                              mention_html(member.user.id, member.user.first_name))
-    else:
+    if member.status in ['kicked', 'left']:
         message.reply_text("यह यूजर चैट में भी नहीं है, उन्हें अनम्यूट करने से वे उनसे अधिक बात नहीं करेंगे")
 
+    elif member.can_send_messages and member.can_send_media_messages \
+                and member.can_send_other_messages and member.can_add_web_page_previews:
+        message.reply_text("उसे बोलने का अधिकार है")
+    else:
+        bot.restrict_chat_member(chat.id, int(user_id),
+                                 can_send_messages=True,
+                                 can_send_media_messages=True,
+                                 can_send_other_messages=True,
+                                 can_add_web_page_previews=True)
+        message.reply_text("अनम्यूट💥!")
+        return "<b>{}:</b>" \
+               "\n#UNMUTE" \
+               "\n<b>Admin:</b> {}" \
+               "\n<b>User:</b> {}".format(html.escape(chat.title),
+                                          mention_html(user.id, user.first_name),
+                                          mention_html(member.user.id, member.user.first_name))
     return ""
 
 
@@ -114,12 +111,11 @@ def temp_mute(bot: Bot, update: Update, args: List[str]) -> str:
     try:
         member = chat.get_member(user_id)
     except BadRequest as excp:
-        if excp.message == "User not found":
-            message.reply_text("I can't seem to find this user")
-            return ""
-        else:
+        if excp.message != "User not found":
             raise
 
+        message.reply_text("I can't seem to find this user")
+        return ""
     if is_user_admin(chat, user_id, member):
         message.reply_text("I really wish I could mute admins...")
         return ""
@@ -135,11 +131,7 @@ def temp_mute(bot: Bot, update: Update, args: List[str]) -> str:
     split_reason = reason.split(None, 1)
 
     time_val = split_reason[0].lower()
-    if len(split_reason) > 1:
-        reason = split_reason[1]
-    else:
-        reason = ""
-
+    reason = split_reason[1] if len(split_reason) > 1 else ""
     mutetime = extract_time(message, time_val)
 
     if not mutetime:

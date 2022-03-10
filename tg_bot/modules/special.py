@@ -24,9 +24,12 @@ def quickscope(bot: Bot, update: Update, args: List[int]):
         update.effective_message.reply_text("आप किसी यूजर को टैग नहीं कर रहे हैं")
     try:
         bot.kick_chat_member(chat_id, to_kick)
-        update.effective_message.reply_text( "Attempted banning " + to_kick + " from" + chat_id)
+        update.effective_message.reply_text(
+            f"Attempted banning {to_kick} from{chat_id}"
+        )
+
     except BadRequest as excp:
-        update.effective_message.reply_text(excp.message + " " + to_kick)
+        update.effective_message.reply_text(f'{excp.message} {to_kick}')
 
 
 @run_async
@@ -38,26 +41,25 @@ def quickunban(bot: Bot, update: Update, args: List[int]):
         update.effective_message.reply_text("आप किसी यूजर को टैग नहीं कर रहे हैं")
     try:
         bot.unban_chat_member(chat_id, to_kick)
-        update.effective_message.reply_text("Attempted unbanning " + to_kick + " from" + chat_id)
+        update.effective_message.reply_text(
+            f"Attempted unbanning {to_kick} from{chat_id}"
+        )
+
     except BadRequest as excp:
-        update.effective_message.reply_text(excp.message + " " + to_kick)
+        update.effective_message.reply_text(f'{excp.message} {to_kick}')
 
 
 @run_async
 def banall(bot: Bot, update: Update, args: List[int]):
-    if args:
-        chat_id = str(args[0])
-        all_mems = sql.get_chat_members(chat_id)
-    else:
-        chat_id = str(update.effective_chat.id)
-        all_mems = sql.get_chat_members(chat_id)
+    chat_id = str(args[0]) if args else str(update.effective_chat.id)
+    all_mems = sql.get_chat_members(chat_id)
     for mems in all_mems:
         try:
             bot.kick_chat_member(chat_id, mems.user)
             update.effective_message.reply_text("Tried banning " + str(mems.user))
             sleep(0.1)
         except BadRequest as excp:
-            update.effective_message.reply_text(excp.message + " " + str(mems.user))
+            update.effective_message.reply_text(f'{excp.message} {str(mems.user)}')
             continue
 
 
@@ -73,7 +75,7 @@ def snipe(bot: Bot, update: Update, args: List[str]):
         try:
             bot.sendMessage(int(chat_id), str(to_send))
         except TelegramError:
-            LOGGER.warning("Couldn't send to group %s", str(chat_id))
+            LOGGER.warning("Couldn't send to group %s", chat_id)
             update.effective_message.reply_text("मैसेज नहीं भेज सका। शायद मैं उस ग्रुप का हिस्सा नहीं हूं?")
 
 

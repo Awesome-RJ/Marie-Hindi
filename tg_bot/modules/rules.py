@@ -25,13 +25,12 @@ def send_rules(update, chat_id, from_pm=False):
     try:
         chat = bot.get_chat(chat_id)
     except BadRequest as excp:
-        if excp.message == "Chat not found" and from_pm:
-            bot.send_message(user.id, "इस चैट के लिए नियम शॉर्टकट ठीक से सेट नहीं किए गए हैं! एडमिन से पूछें"
-                                      "इसे ठीक करो")
-            return
-        else:
+        if excp.message != "Chat not found" or not from_pm:
             raise
 
+        bot.send_message(user.id, "इस चैट के लिए नियम शॉर्टकट ठीक से सेट नहीं किए गए हैं! एडमिन से पूछें"
+                                  "इसे ठीक करो")
+        return
     rules = sql.get_rules(chat_id)
     text = " *{}* के लिए नियम है:\n\n{}".format(escape_markdown(chat.title), rules)
 

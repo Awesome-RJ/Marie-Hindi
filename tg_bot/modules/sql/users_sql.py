@@ -154,8 +154,7 @@ def num_users():
 
 def migrate_chat(old_chat_id, new_chat_id):
     with INSERTION_LOCK:
-        chat = SESSION.query(Chats).get(str(old_chat_id))
-        if chat:
+        if chat := SESSION.query(Chats).get(str(old_chat_id)):
             chat.chat_id = str(new_chat_id)
             SESSION.add(chat)
 

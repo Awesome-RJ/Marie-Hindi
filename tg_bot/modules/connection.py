@@ -21,18 +21,15 @@ from tg_bot.modules.keyboard import keyboard
 @run_async
 def allow_connections(bot: Bot, update: Update, args: List[str]) -> str:
     chat = update.effective_chat  # type: Optional[Chat]
-    if chat.type != chat.PRIVATE:
-        if len(args) >= 1:
-            var = args[0]
-            print(var)
-            if (var == "no"):
-                sql.set_allow_connect_to_chat(chat.id, False)
-                update.effective_message.reply_text("यूजर के लिए इस चैट में बंद कनेक्शन")
-            elif(var == "yes"):
-                sql.set_allow_connect_to_chat(chat.id, True)
-                update.effective_message.reply_text("यूजर के लिए इस चैट में सक्रिय  कनेक्शन")
-            else:
-                update.effective_message.reply_text("कृप्या ग्रुप में on/yes/off/no टाइप करे!")
+    if chat.type != chat.PRIVATE and args:
+        var = args[0]
+        print(var)
+        if (var == "no"):
+            sql.set_allow_connect_to_chat(chat.id, False)
+            update.effective_message.reply_text("यूजर के लिए इस चैट में बंद कनेक्शन")
+        elif(var == "yes"):
+            sql.set_allow_connect_to_chat(chat.id, True)
+            update.effective_message.reply_text("यूजर के लिए इस चैट में सक्रिय  कनेक्शन")
         else:
             update.effective_message.reply_text("कृप्या ग्रुप में on/yes/off/no टाइप करे!")
     else:
@@ -59,9 +56,7 @@ def connect_chat(bot, update, args):
                     chat_name = dispatcher.bot.getChat(connected(bot, update, chat, user.id, need_admin=False)).title
                     update.effective_message.reply_text(" *{}* से सफलतापूर्वक जुड़ा हुआ है".format(chat_name), parse_mode=ParseMode.MARKDOWN)
 
-                    #Add chat to connection history
-                    history = sql.get_history(user.id)
-                    if history:
+                    if history := sql.get_history(user.id):
                         #Vars
                         if history.chat_id1:
                             history1 = int(history.chat_id1)
@@ -83,7 +78,7 @@ def connect_chat(bot, update, args):
                             number = 1
                         else:
                             print("Error")
-                    
+
                         print(history.updated)
                         print(number)
 
@@ -93,7 +88,7 @@ def connect_chat(bot, update, args):
                         sql.add_history(user.id, connect_chat, "0", "0", 2)
                     #Rebuild user's keyboard
                     keyboard(bot, update)
-                    
+
                 else:
                     update.effective_message.reply_text("कनेक्शन फ़ैल!")
             else:
@@ -121,26 +116,22 @@ def disconnect_chat(bot, update):
 
 
 def connected(bot, update, chat, user_id, need_admin=True):
-    if chat.type == chat.PRIVATE and sql.get_connected_chat(user_id):
-        conn_id = sql.get_connected_chat(user_id).chat_id
-        if (bot.get_chat_member(conn_id, user_id).status in ('administrator', 'creator') or 
+    if chat.type != chat.PRIVATE or not sql.get_connected_chat(user_id):
+        return False
+    conn_id = sql.get_connected_chat(user_id).chat_id
+    if (bot.get_chat_member(conn_id, user_id).status in ('administrator', 'creator') or 
                                      (sql.allow_connect_to_chat(connect_chat) == True) and 
                                      bot.get_chat_member(user_id, update.effective_message.from_user.id).status in ('member')) or (
                                      user_id in SUDO_USERS):
-            if need_admin == True:
-                if bot.get_chat_member(conn_id, update.effective_message.from_user.id).status in ('administrator', 'creator') or user_id in SUDO_USERS:
-                    return conn_id
-                else:
-                    update.effective_message.reply_text("आपको एक जुड़े ग्रुप में एक एडमिन होने की जरुरत है!")
-                    exit(1)
-            else:
-                return conn_id
-        else:
-            update.effective_message.reply_text("ग्रुप ने अधिकारों का कनेक्शन बदल दिया या आप अब एडमिन नहीं हैं। \n मैं आपको डिस्कनेक्ट कर दूंगा।")
-            disconnect_chat(bot, update)
-            exit(1)
+        if need_admin != True:
+            return conn_id
+        if bot.get_chat_member(conn_id, update.effective_message.from_user.id).status in ('administrator', 'creator') or user_id in SUDO_USERS:
+            return conn_id
+        update.effective_message.reply_text("आपको एक जुड़े ग्रुप में एक एडमिन होने की जरुरत है!")
     else:
-        return False
+        update.effective_message.reply_text("ग्रुप ने अधिकारों का कनेक्शन बदल दिया या आप अब एडमिन नहीं हैं। \n मैं आपको डिस्कनेक्ट कर दूंगा।")
+        disconnect_chat(bot, update)
+    exit(1)
 
 
 

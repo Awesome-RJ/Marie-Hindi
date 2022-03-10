@@ -43,7 +43,13 @@ HELP_STRINGS = """
    - एक ग्रूप में:
 {}
 और निम्नलिखित:
-""".format(dispatcher.bot.first_name, "" if not ALLOW_EXCL else "\nनिम्नलिखित सभी कमांड / या! इस्तेमाल किया जा सकता है...\n")
+""".format(
+    dispatcher.bot.first_name,
+    "\nनिम्नलिखित सभी कमांड / या! इस्तेमाल किया जा सकता है...\n"
+    if ALLOW_EXCL
+    else "",
+)
+
 
 DONATE_STRING = """हे, तुम दान करना चाहते सुनने में मुझे अच्छा लगा! सभी दान का पैसा बेहतर वीपीएस में जाएगा मुझे होस्ट करने के लिए,\
 तुम सच में मेरे लिए दान करना चाहते हैं,इसे मेरे [भगवान](t.me/TheDarkW3b) को दे दो """
@@ -64,7 +70,7 @@ for module_name in ALL_MODULES:
     if not hasattr(imported_module, "__mod_name__"):
         imported_module.__mod_name__ = imported_module.__name__
 
-    if not imported_module.__mod_name__.lower() in IMPORTED:
+    if imported_module.__mod_name__.lower() not in IMPORTED:
         IMPORTED[imported_module.__mod_name__.lower()] = imported_module
     else:
         raise Exception("Can't have two modules with the same name! Please change one")
@@ -116,7 +122,7 @@ def test(bot: Bot, update: Update):
 @run_async
 def start(bot: Bot, update: Update, args: List[str]):
     if update.effective_chat.type == "private":
-        if len(args) >= 1:
+        if args:
             if args[0].lower() == "help":
                 send_help(update.effective_chat.id, HELP_STRINGS)
 
@@ -210,13 +216,11 @@ def help_button(bot: Bot, update: Update):
         bot.answer_callback_query(query.id)
         query.message.delete()
     except BadRequest as excp:
-        if excp.message == "Message is not modified":
-            pass
-        elif excp.message == "Query_id_invalid":
-            pass
-        elif excp.message == "Message can't be deleted":
-            pass
-        else:
+        if excp.message not in [
+            "Message is not modified",
+            "Query_id_invalid",
+            "Message can't be deleted",
+        ]:
             LOGGER.exception("Exception in help buttons. %s", str(query.data))
 
 
@@ -257,18 +261,17 @@ def send_settings(chat_id, user_id, user=False):
             dispatcher.bot.send_message(user_id, "ऐसा लगता है कि कोई उपयोगकर्ता सेटिंग्स उपलब्ध नहीं हैं :'(",
                                         parse_mode=ParseMode.MARKDOWN)
 
+    elif CHAT_SETTINGS:
+        chat_name = dispatcher.bot.getChat(chat_id).title
+        dispatcher.bot.send_message(user_id,
+                                    text="आप किस मॉड्यूल की जाँच करना चाहेंगे? {}'सेटिंग्स के लिए?".format(
+                                        chat_name),
+                                    reply_markup=InlineKeyboardMarkup(
+                                        paginate_modules(0, CHAT_SETTINGS, "stngs", chat=chat_id)))
     else:
-        if CHAT_SETTINGS:
-            chat_name = dispatcher.bot.getChat(chat_id).title
-            dispatcher.bot.send_message(user_id,
-                                        text="आप किस मॉड्यूल की जाँच करना चाहेंगे? {}'सेटिंग्स के लिए?".format(
-                                            chat_name),
-                                        reply_markup=InlineKeyboardMarkup(
-                                            paginate_modules(0, CHAT_SETTINGS, "stngs", chat=chat_id)))
-        else:
-            dispatcher.bot.send_message(user_id, "ऐसा लगता है कि कोई चैट सेटिंग उपलब्ध नहीं है :'(\nइसे उस "
-                                                 "समूह चैट में भेजें जिसे आप इसकी वर्तमान सेटिंग खोजने के लिए व्यवस्थापक हैं",
-                                        parse_mode=ParseMode.MARKDOWN)
+        dispatcher.bot.send_message(user_id, "ऐसा लगता है कि कोई चैट सेटिंग उपलब्ध नहीं है :'(\nइसे उस "
+                                             "समूह चैट में भेजें जिसे आप इसकी वर्तमान सेटिंग खोजने के लिए व्यवस्थापक हैं",
+                                    parse_mode=ParseMode.MARKDOWN)
 
 
 @run_async
@@ -326,13 +329,11 @@ def settings_button(bot: Bot, update: Update):
         bot.answer_callback_query(query.id)
         query.message.delete()
     except BadRequest as excp:
-        if excp.message == "Message is not modified":
-            pass
-        elif excp.message == "Query_id_invalid":
-            pass
-        elif excp.message == "Message can't be deleted":
-            pass
-        else:
+        if excp.message not in [
+            "Message is not modified",
+            "Query_id_invalid",
+            "Message can't be deleted",
+        ]:
             LOGGER.exception("Exception in settings buttons. %s", str(query.data))
 
 
@@ -344,19 +345,18 @@ def get_settings(bot: Bot, update: Update):
     args = msg.text.split(None, 1)
 
     # ONLY send settings in PM
-    if chat.type != chat.PRIVATE:
-        if is_user_admin(chat, user.id):
-            text = "इस चैट की सेटिंग पाने के लिए यहां क्लिक करें, साथ ही आपका भी."
-            msg.reply_text(text,
-                           reply_markup=InlineKeyboardMarkup(
-                               [[InlineKeyboardButton(text="सेटिंग",
-                                                      url="t.me/{}?start=stngs_{}".format(
-                                                          bot.username, chat.id))]]))
-        else:
-            text = "Click here to check your settings."
-
-    else:
+    if chat.type == chat.PRIVATE:
         send_settings(chat.id, user.id, True)
+
+    elif is_user_admin(chat, user.id):
+        text = "इस चैट की सेटिंग पाने के लिए यहां क्लिक करें, साथ ही आपका भी."
+        msg.reply_text(text,
+                       reply_markup=InlineKeyboardMarkup(
+                           [[InlineKeyboardButton(text="सेटिंग",
+                                                  url="t.me/{}?start=stngs_{}".format(
+                                                      bot.username, chat.id))]]))
+    else:
+        text = "Click here to check your settings."
 
 
 @run_async
@@ -444,5 +444,5 @@ def main():
 
 
 if __name__ == '__main__':
-    LOGGER.info("Successfully loaded modules: " + str(ALL_MODULES))
+    LOGGER.info(f"Successfully loaded modules: {str(ALL_MODULES)}")
     main()
